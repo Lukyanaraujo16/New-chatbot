@@ -144,10 +144,12 @@ WHATSAPP_API_TOKEN=$WHATSAPP_API_TOKEN
 EOF
 
 npm install --silent
+# Corrigir permissão de execução (arquivos vindos do Windows podem perder +x)
+chmod -R u+x "$BACKEND_DIR/node_modules/.bin" 2>/dev/null || true
 log_info "Executando migrações do banco..."
-npx sequelize-cli db:migrate
+node "$BACKEND_DIR/node_modules/sequelize-cli/lib/sequelize" db:migrate --env production
 log_info "Executando seed (usuário admin)..."
-npx sequelize-cli db:seed:all 2>/dev/null || true
+node "$BACKEND_DIR/node_modules/sequelize-cli/lib/sequelize" db:seed:all --env production 2>/dev/null || true
 
 # =============================================================================
 # 6. API WhatsApp (dev-connect-ai-wa)
