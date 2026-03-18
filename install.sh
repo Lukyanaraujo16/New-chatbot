@@ -172,9 +172,12 @@ if [ -d "$FRONTEND_DIR" ]; then
   log_info "Configurando frontend..."
   cd "$FRONTEND_DIR"
   echo "REACT_APP_BACKEND_URL=$BACKEND_PUBLIC_URL" > .env
-  npm install --silent 2>&1 || { log_warn "Frontend: npm install falhou. Continuando..."; true; }
+  # Mais memória para npm em VPS; --legacy-peer-deps evita conflitos de dependências do React
+  export NODE_OPTIONS="--max-old-space-size=2048"
+  npm install --legacy-peer-deps || { log_warn "Frontend: npm install falhou. Continuando..."; true; }
+  chmod -R u+x "$FRONTEND_DIR/node_modules/.bin" 2>/dev/null || true
   log_info "Gerando build do frontend (pode demorar)..."
-  npm run build 2>&1 || { log_warn "Frontend: build falhou. Continuando..."; true; }
+  (cd "$FRONTEND_DIR" && npx react-app-rewired build) || { log_warn "Frontend: build falhou. Continuando..."; true; }
 else
   log_warn "Pasta frontend não encontrada; pulando build."
 fi
