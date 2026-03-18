@@ -157,29 +157,36 @@ node "$BACKEND_DIR/node_modules/sequelize-cli/lib/sequelize" db:seed:all --env p
 API_DIR="$INSTALL_DIR/dev-connect-ai-wa"
 if [ -d "$API_DIR" ]; then
   log_info "Instalando dependências da API WhatsApp (Baileys)..."
-  cd "$API_DIR"
-  npm install --silent 2>&1 || { log_warn "API WhatsApp: npm install falhou (conexão WhatsApp pode não funcionar). Continuando..."; true; }
-  mkdir -p db media
+  (cd "$API_DIR" && npm install --silent) || log_warn "API WhatsApp: npm install falhou. Continuando..."
+  mkdir -p "$API_DIR/db" "$API_DIR/media"
 else
   log_warn "Pasta dev-connect-ai-wa não encontrada; pulando API WhatsApp."
 fi
 
 # =============================================================================
-# 7. Frontend (build e serve) - não interrompe se npm/build falhar
+# 7. Frontend - usa build em automatizaai/ se existir; senão tenta compilar (src/)
 # =============================================================================
 FRONTEND_DIR="$INSTALL_DIR/dev-connect-ai-wa/frontend"
 if [ -d "$FRONTEND_DIR" ]; then
-  log_info "Configurando frontend..."
   cd "$FRONTEND_DIR"
   echo "REACT_APP_BACKEND_URL=$BACKEND_PUBLIC_URL" > .env
-  # Mais memória para npm em VPS; --legacy-peer-deps evita conflitos de dependências do React
-  export NODE_OPTIONS="--max-old-space-size=2048"
-  npm install --legacy-peer-deps || { log_warn "Frontend: npm install falhou. Continuando..."; true; }
-  chmod -R u+x "$FRONTEND_DIR/node_modules/.bin" 2>/dev/null || true
-  log_info "Gerando build do frontend (pode demorar)..."
-  (cd "$FRONTEND_DIR" && npx react-app-rewired build) || { log_warn "Frontend: build falhou. Continuando..."; true; }
+  if [ -d "$FRONTEND_DIR/automatizaai" ]; then
+    log_info "Frontend: usando build existente (automatizaai/), pulando compilação."
+  elif [ -f "$FRONTEND_DIR/src/index.js" ] || [ -f "$FRONTEND_DIR/src/index.jsx" ]; then
+    log_info "Configurando frontend (compilando)..."
+    mkdir -p "$FRONTEND_DIR/public"
+    printf '%s\n' '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>Chatbot WhatsApp</title></head><body><noscript>Habilite JavaScript.</noscript><div id="root"></div></body></html>' > "$FRONTEND_DIR/public/index.html"
+    printf '%s\n' 'module.exports = function override(config, env) { return config; };' > "$FRONTEND_DIR/config-overrides.js"
+    export NODE_OPTIONS="--max-old-space-size=2048"
+    (npm install --legacy-peer-deps) || log_warn "Frontend: npm install falhou. Continuando..."
+    chmod -R u+x "$FRONTEND_DIR/node_modules/.bin" 2>/dev/null || true
+    log_info "Gerando build do frontend (pode demorar)..."
+    (cd "$FRONTEND_DIR" && npx react-app-rewired build) || log_warn "Frontend: build falhou. Continuando..."
+  else
+    log_warn "Frontend: nem automatizaai/ nem src/ encontrados; pulando."
+  fi
 else
-  log_warn "Pasta frontend não encontrada; pulando build."
+  log_warn "Pasta frontend não encontrada; pulando."
 fi
 
 # =============================================================================
@@ -198,11 +205,13 @@ if [ -d "$API_DIR" ]; then
   pm2 start "$API_DIR/src/server.js" --name "whatsapp-api" --cwd "$API_DIR" || { log_warn "PM2: whatsapp-api não iniciado."; true; }
 fi
 
-# Frontend (porta 80)
+# Frontend (porta 80): build/ (compilado) ou automatizaai/ (build já incluso)
 if [ -d "$FRONTEND_DIR/build" ]; then
   pm2 serve "$FRONTEND_DIR/build" "$PORT_HTTP" --name "meu-chatbot-frontend" --spa || true
+elif [ -d "$FRONTEND_DIR/automatizaai" ]; then
+  pm2 serve "$FRONTEND_DIR/automatizaai" "$PORT_HTTP" --name "meu-chatbot-frontend" --spa || true
 else
-  log_warn "Pasta build do frontend não existe; frontend não será servido na porta $PORT_HTTP."
+  log_warn "Nenhuma pasta de frontend (build/ ou automatizaai/) encontrada; porta $PORT_HTTP não será usada."
 fi
 
 pm2 save || true
