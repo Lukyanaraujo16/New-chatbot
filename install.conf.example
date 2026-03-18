@@ -1,0 +1,25 @@
+# Opcional. Use antes do install: source install.conf && sudo -E bash install.sh
+# O install.sh é não interativo; use este arquivo só para sobrescrever padrões.
+
+# Senha do usuário PostgreSQL (padrão: MeuChatbot2024!)
+# DB_PASS=minha_senha_segura
+
+# Nome do banco e usuário
+# DB_NAME=meu_chatbot
+# DB_USER=meuchatbot
+
+# Porta do sistema no navegador (padrão: 80)
+# PORT_HTTP=80
+
+# Portas internas
+# PORT_BACKEND=9003
+# PORT_API=9898
+
+# URL pública do backend (padrão: http://IP:9003)
+# BACKEND_PUBLIC_URL=http://meuservidor.com:9003
+
+# IP do servidor (se vazio, detecta automaticamente)
+# SERVER_IP=192.168.1.10
+
+# Token da API WhatsApp (igual ao config.js em dev-connect-ai-wa/src)
+# WHATSAPP_API_TOKEN=ss94soj4rc4aK1g8-n7irHnfDipMrgssO2exV12Oo-U
