@@ -152,30 +152,29 @@ log_info "Executando seed (usuário admin)..."
 node "$BACKEND_DIR/node_modules/sequelize-cli/lib/sequelize" db:seed:all --env production 2>/dev/null || true
 
 # =============================================================================
-# 6. API WhatsApp (dev-connect-ai-wa)
+# 6. API WhatsApp (dev-connect-ai-wa) - não interrompe se npm falhar
 # =============================================================================
 API_DIR="$INSTALL_DIR/dev-connect-ai-wa"
 if [ -d "$API_DIR" ]; then
   log_info "Instalando dependências da API WhatsApp (Baileys)..."
   cd "$API_DIR"
-  npm install --silent
-  # Garantir que a pasta db existe (sessões)
+  npm install --silent 2>&1 || { log_warn "API WhatsApp: npm install falhou (conexão WhatsApp pode não funcionar). Continuando..."; true; }
   mkdir -p db media
 else
   log_warn "Pasta dev-connect-ai-wa não encontrada; pulando API WhatsApp."
 fi
 
 # =============================================================================
-# 7. Frontend (build e serve)
+# 7. Frontend (build e serve) - não interrompe se npm/build falhar
 # =============================================================================
 FRONTEND_DIR="$INSTALL_DIR/dev-connect-ai-wa/frontend"
 if [ -d "$FRONTEND_DIR" ]; then
   log_info "Configurando frontend..."
   cd "$FRONTEND_DIR"
   echo "REACT_APP_BACKEND_URL=$BACKEND_PUBLIC_URL" > .env
-  npm install --silent
+  npm install --silent 2>&1 || { log_warn "Frontend: npm install falhou. Continuando..."; true; }
   log_info "Gerando build do frontend (pode demorar)..."
-  npm run build
+  npm run build 2>&1 || { log_warn "Frontend: build falhou. Continuando..."; true; }
 else
   log_warn "Pasta frontend não encontrada; pulando build."
 fi
@@ -189,19 +188,21 @@ cd "$INSTALL_DIR"
 pm2 delete all 2>/dev/null || true
 
 # Backend
-pm2 start "$BACKEND_DIR/src/server.js" --name "meu-chatbot-backend" --cwd "$BACKEND_DIR"
+pm2 start "$BACKEND_DIR/src/server.js" --name "meu-chatbot-backend" --cwd "$BACKEND_DIR" || true
 
 # API WhatsApp
 if [ -d "$API_DIR" ]; then
-  pm2 start "$API_DIR/src/server.js" --name "whatsapp-api" --cwd "$API_DIR"
+  pm2 start "$API_DIR/src/server.js" --name "whatsapp-api" --cwd "$API_DIR" || { log_warn "PM2: whatsapp-api não iniciado."; true; }
 fi
 
 # Frontend (porta 80)
 if [ -d "$FRONTEND_DIR/build" ]; then
-  pm2 serve "$FRONTEND_DIR/build" "$PORT_HTTP" --name "meu-chatbot-frontend" --spa
+  pm2 serve "$FRONTEND_DIR/build" "$PORT_HTTP" --name "meu-chatbot-frontend" --spa || true
+else
+  log_warn "Pasta build do frontend não existe; frontend não será servido na porta $PORT_HTTP."
 fi
 
-pm2 save
+pm2 save || true
 pm2 startup systemd -u root --hp /root 2>/dev/null || true
 
 # =============================================================================
