@@ -33,10 +33,16 @@ const licensePayload = {
   data: { valid: true, success: true, message: "Licença válida" },
 };
 app.use((req, res, next) => {
-  const url = (req.originalUrl || req.url || "").toLowerCase();
-  const path = (req.path || "").toLowerCase();
-  if (path.includes("license") || path.includes("licenca") || path.includes("validar") ||
-      url.includes("license") || url.includes("licenca") || url.includes("validar")) {
+  const rawUrl = req.originalUrl || req.url || "";
+  let url = rawUrl;
+  try {
+    url = decodeURIComponent(rawUrl);
+  } catch (_) {
+    // Se a URL não for decodificável, seguimos com rawUrl
+  }
+  const haystack = `${url} ${req.path || ""}`.toLowerCase();
+  // Alguns builds podem chamar endpoints com pequenas variações (licenca/license/autorizacao/etc)
+  if (/(license|licen[cç]a|licenca|validar|autoriza)/i.test(haystack)) {
     return res.json(licensePayload);
   }
   next();

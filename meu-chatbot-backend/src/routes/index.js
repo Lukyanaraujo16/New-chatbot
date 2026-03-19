@@ -16,8 +16,15 @@ const routes = express.Router();
 // Qualquer rota que contenha "license" ou "licenca" retorna válida (frontend DevConnectAi)
 const licensePayload = { valid: true, message: "Licença válida", success: true };
 routes.use((req, res, next) => {
-  const path = (req.path || "").toLowerCase();
-  if (path.includes("license") || path.includes("licenca") || path.includes("validar")) {
+  const rawUrl = req.originalUrl || req.url || "";
+  let url = rawUrl;
+  try {
+    url = decodeURIComponent(rawUrl);
+  } catch (_) {
+    // noop
+  }
+  const haystack = `${url} ${req.path || ""}`.toLowerCase();
+  if (/(license|licen[cç]a|licenca|validar|autoriza)/i.test(haystack)) {
     return res.json(licensePayload);
   }
   next();
@@ -25,6 +32,21 @@ routes.use((req, res, next) => {
 
 routes.get("/", (req, res) => res.json({ status: "OK", message: "Meu Chatbot API" }));
 routes.get("/status", (req, res) => res.json({ status: "OK" }));
+
+// Frontend (automatizaai) chama GET /config
+routes.get("/config", (req, res) => {
+  const baseUrl =
+    process.env.PUBLIC_URL ||
+    `${req.protocol}://${req.get("host") || "localhost"}`;
+  return res.json({
+    success: true,
+    valid: true,
+    licenseValid: true,
+    message: "Config carregada",
+    backendUrl: baseUrl,
+    apiUrl: baseUrl,
+  });
+});
 
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
