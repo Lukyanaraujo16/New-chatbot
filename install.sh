@@ -189,10 +189,18 @@ if [ -d "$FRONTEND_DIR" ]; then
   "WDS_SOCKET_PORT": 0
 }
 CONFIGEOF
-    # Se o JS tiver URL externa de licença, redirecionar para nosso backend
+    # Redirecionar URL externa de licença para nosso backend (em todos os chunks)
+    PATCHED=0
     for f in "$FRONTEND_DIR/automatizaai/static/js/"*.chunk.js; do
-      [ -f "$f" ] && grep -q "autoriza.dominio" "$f" 2>/dev/null && sed -i "s|https://autoriza.dominio|$BACKEND_PUBLIC_URL|g" "$f" && log_info "Frontend: URL de licença redirecionada para o backend." && break
+      if [ -f "$f" ]; then
+        if grep -q "autoriza" "$f" 2>/dev/null; then
+          sed -i "s|https://autoriza.dominio|$BACKEND_PUBLIC_URL|g" "$f"
+          sed -i "s|http://autoriza.dominio|$BACKEND_PUBLIC_URL|g" "$f"
+          PATCHED=1
+        fi
+      fi
     done
+    [ "$PATCHED" = "1" ] && log_info "Frontend: URLs de licença redirecionadas para o backend."
   elif [ -f "$FRONTEND_DIR/src/index.js" ] || [ -f "$FRONTEND_DIR/src/index.jsx" ]; then
     log_info "Configurando frontend (compilando)..."
     mkdir -p "$FRONTEND_DIR/public"

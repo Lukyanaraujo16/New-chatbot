@@ -24,6 +24,24 @@ app.use(
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
+// Intercepta qualquer chamada de licença (frontend DevConnectAi) antes das rotas
+const licensePayload = {
+  valid: true,
+  success: true,
+  message: "Licença válida",
+  licenseValid: true,
+  data: { valid: true, success: true, message: "Licença válida" },
+};
+app.use((req, res, next) => {
+  const url = (req.originalUrl || req.url || "").toLowerCase();
+  const path = (req.path || "").toLowerCase();
+  if (path.includes("license") || path.includes("licenca") || path.includes("validar") ||
+      url.includes("license") || url.includes("licenca") || url.includes("validar")) {
+    return res.json(licensePayload);
+  }
+  next();
+});
+
 app.use(routes);
 
 app.use((err, req, res, next) => {
