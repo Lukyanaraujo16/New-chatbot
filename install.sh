@@ -172,6 +172,8 @@ if [ -d "$FRONTEND_DIR" ]; then
   echo "REACT_APP_BACKEND_URL=$BACKEND_PUBLIC_URL" > .env
   if [ -d "$FRONTEND_DIR/automatizaai" ]; then
     log_info "Frontend: usando build existente (automatizaai/), pulando compilação."
+    # Garantir que o frontend chame nosso backend (e rotas de licença)
+    [ -f "$FRONTEND_DIR/automatizaai/config.json" ] && sed -i "s|\"REACT_APP_BACKEND_URL\":[^,]*|\"REACT_APP_BACKEND_URL\": \"$BACKEND_PUBLIC_URL\"|" "$FRONTEND_DIR/automatizaai/config.json" 2>/dev/null || true
   elif [ -f "$FRONTEND_DIR/src/index.js" ] || [ -f "$FRONTEND_DIR/src/index.jsx" ]; then
     log_info "Configurando frontend (compilando)..."
     mkdir -p "$FRONTEND_DIR/public"

@@ -16,6 +16,13 @@ const routes = express.Router();
 routes.get("/", (req, res) => res.json({ status: "OK", message: "Meu Chatbot API" }));
 routes.get("/status", (req, res) => res.json({ status: "OK" }));
 
+// Compatibilidade com frontend DevConnectAi: sempre retorna licença válida (uso próprio)
+routes.get("/license", (req, res) => res.json({ valid: true, message: "Licença válida" }));
+routes.get("/license/check", (req, res) => res.json({ valid: true }));
+routes.post("/license/check", (req, res) => res.json({ valid: true }));
+routes.get("/licenca", (req, res) => res.json({ valid: true }));
+routes.get("/api/license", (req, res) => res.json({ valid: true }));
+
 routes.use(userRoutes);
 routes.use("/auth", authRoutes);
 routes.use(settingRoutes);
