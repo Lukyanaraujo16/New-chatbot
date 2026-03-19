@@ -34,6 +34,8 @@ exports.login = async (req, res) => {
       email: user.email,
       profile: user.profile,
     },
+    licenseValid: true,
+    valid: true,
   });
 };
 

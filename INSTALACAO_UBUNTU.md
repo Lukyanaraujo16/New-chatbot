@@ -10,7 +10,8 @@ Script **não interativo**: instala dependências, banco, backend, API WhatsApp 
 ## Passo a passo
 
 1. **Envie o projeto para o servidor** (por exemplo em `/opt/meu-chatbot`):
-   - Copie a pasta inteira (com `meu-chatbot-backend`, `dev-connect-ai-wa` e `install.sh` na mesma raiz).
+   - Raiz deve conter: `install.sh`, `meu-chatbot-backend/`, `dev-connect-ai-wa/`.
+   - Dentro de `dev-connect-ai-wa/frontend/` deve existir a pasta **`automatizaai/`** (build do frontend com index.html, static/, config.json). Sem ela o site não sobe na porta 80.
 
 2. **No servidor, execute:**
    ```bash
@@ -39,8 +40,9 @@ Script **não interativo**: instala dependências, banco, backend, API WhatsApp 
 
 ## Após a instalação
 
-- **Acesse o sistema em:** `http://IP_DO_SERVIDOR` (porta 80)
+- **Acesse o sistema em:** `http://IP_DO_SERVIDOR` (porta 80). Use **http://** (não https).
 - **Login:** `admin@meuchatbot.com` / `admin123` (troque a senha depois)
+- Se não conectar, libere a porta 80 no **firewall do provedor** (painel do VPS).
 
 A senha do PostgreSQL e dados do banco ficam em `.install-db-info.txt` na pasta do projeto (leitura apenas para root).
 

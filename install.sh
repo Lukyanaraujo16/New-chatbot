@@ -85,6 +85,7 @@ if ! command -v psql &>/dev/null; then
   systemctl start postgresql
 fi
 
+systemctl start postgresql 2>/dev/null || true
 log_info "Configurando banco de dados PostgreSQL..."
 EXISTS=$(sudo -u postgres psql -q -tAc "SELECT 1 FROM pg_roles WHERE rolname='$DB_USER';" 2>/dev/null || true)
 if [ "$EXISTS" != "1" ]; then
@@ -172,8 +173,26 @@ if [ -d "$FRONTEND_DIR" ]; then
   echo "REACT_APP_BACKEND_URL=$BACKEND_PUBLIC_URL" > .env
   if [ -d "$FRONTEND_DIR/automatizaai" ]; then
     log_info "Frontend: usando build existente (automatizaai/), pulando compilação."
-    # Garantir que o frontend chame nosso backend (e rotas de licença)
-    [ -f "$FRONTEND_DIR/automatizaai/config.json" ] && sed -i "s|\"REACT_APP_BACKEND_URL\":[^,]*|\"REACT_APP_BACKEND_URL\": \"$BACKEND_PUBLIC_URL\"|" "$FRONTEND_DIR/automatizaai/config.json" 2>/dev/null || true
+    # config.json com URL do nosso backend (frontend chama nosso backend + rotas de licença)
+    cat > "$FRONTEND_DIR/automatizaai/config.json" << CONFIGEOF
+{
+  "REACT_APP_BACKEND_URL": "$BACKEND_PUBLIC_URL",
+  "REACT_APP_ENV_TOKEN": "210897ugn217204u98u8jfo2983u5",
+  "REACT_APP_HOURS_CLOSE_TICKETS_AUTO": 9999999,
+  "REACT_APP_FACEBOOK_APP_ID": "1536297790504579",
+  "REACT_APP_NAME_SYSTEM": "Meu Chatbot",
+  "REACT_APP_VERSION": "1.0.0",
+  "REACT_APP_PRIMARY_COLOR": "#24c776",
+  "REACT_APP_PRIMARY_DARK": "#2c3145",
+  "REACT_APP_NUMBER_SUPPORT": "5551997058551",
+  "SERVER_PORT": 3000,
+  "WDS_SOCKET_PORT": 0
+}
+CONFIGEOF
+    # Se o JS tiver URL externa de licença, redirecionar para nosso backend
+    for f in "$FRONTEND_DIR/automatizaai/static/js/"*.chunk.js; do
+      [ -f "$f" ] && grep -q "autoriza.dominio" "$f" 2>/dev/null && sed -i "s|https://autoriza.dominio|$BACKEND_PUBLIC_URL|g" "$f" && log_info "Frontend: URL de licença redirecionada para o backend." && break
+    done
   elif [ -f "$FRONTEND_DIR/src/index.js" ] || [ -f "$FRONTEND_DIR/src/index.jsx" ]; then
     log_info "Configurando frontend (compilando)..."
     mkdir -p "$FRONTEND_DIR/public"
@@ -256,6 +275,8 @@ echo "    E-mail: admin@meuchatbot.com"
 echo "    Senha:  admin123"
 echo ""
 echo "  (Recomendado alterar a senha após o primeiro acesso.)"
+echo ""
+echo "  Use http:// no navegador (não https). Libere a porta 80 no firewall do provedor se necessário."
 echo ""
 echo "  Comandos úteis: pm2 status | pm2 logs | pm2 restart all"
 echo "============================================================================="

@@ -9,8 +9,8 @@
 # testing
 /coverage
 
-# production
-/automatizaai
+# production (build compilado - comentado para incluir automatizaai no repo e no deploy)
+# /automatizaai
 
 # misc
 .DS_Store
